@@ -1,2 +1,2 @@
 # Captain
-Configuration UI and handling
+Service Discovery 
