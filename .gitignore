@@ -1,3 +1,15 @@
+target/
+bin/
+
+# IntelliJ
 *.iml
 .idea/
-target/
+
+# eclipse
+*.classpath
+*.project
+.settings/
+
+# NetBeans
+nb-configuration.xml
+nbactions.xml

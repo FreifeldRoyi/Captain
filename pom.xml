@@ -11,15 +11,21 @@
     <packaging>war</packaging>
 
     <properties>
-        <version.javaee-api>7.0</version.javaee-api>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <failOnMissingWebXml>false</failOnMissingWebXml>
 
+        <!-- Provided dependencies -->
+        <version.javaee-api>7.0</version.javaee-api>
+        <version.jcache-api>1.0.0</version.jcache-api>
+
+        <!-- Dependencies -->
         <version.curator>4.0.0</version.curator>
         <version.zookeeper>3.4.10</version.zookeeper>
+        <version.logging.slf4j>1.7.25</version.logging.slf4j>
+        <version.logging.log4j>2.8.2</version.logging.log4j>
     </properties>
 
     <build>
@@ -46,9 +52,31 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-recipes</artifactId>
+            <version>${version.curator}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
             <version>${version.zookeeper}</version>
+        </dependency>
+
+        <!-- logging dependency -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${version.logging.slf4j}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${version.logging.log4j}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${version.logging.log4j}</version>
         </dependency>
     </dependencies>
 </project>

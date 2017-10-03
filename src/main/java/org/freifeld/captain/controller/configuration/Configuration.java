@@ -15,8 +15,8 @@ public class Configuration
 	@ConfigVariable
 	public String getStringEnv(InjectionPoint ip)
 	{
-		ConfigVariable configVariable = ip.getAnnotated().getAnnotation(ConfigVariable.class);
-		return System.getenv().get(configVariable.value());
+		ConfigVariable metaData = ip.getAnnotated().getAnnotation(ConfigVariable.class);
+		return System.getenv().get(metaData.value());
 	}
 
 	@Produces
