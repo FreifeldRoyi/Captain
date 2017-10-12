@@ -1,85 +1,121 @@
 package org.freifeld.captain.controller;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.recipes.cache.TreeCache;
-import org.apache.curator.retry.RetryForever;
+import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.zookeeper.data.Stat;
-import org.freifeld.captain.controller.configuration.ConfigVariable;
-import org.freifeld.captain.controller.exception.ZookeeperException;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.ejb.Singleton;
+import javax.ejb.Stateless;
 import javax.inject.Inject;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
+import static org.freifeld.captain.controller.ZookeeperConstants.DISCOVERY_BUCKET;
+import static org.freifeld.captain.controller.ZookeeperConstants.ZOOKEEPER_SEPARATOR;
 
 /**
  * @author royif
  * @since 06/09/17.
  */
-@Singleton
+@Stateless
 public class ZookeeperNegotiator
 {
-	private static final String ZOOKEEPER_SEPARATOR = "/";
-	private static final String DISCOVERY_BUCKET = ZOOKEEPER_SEPARATOR + "services";
-
 	@Inject
-	@ConfigVariable(value = "ZOOKEEPER_ADDRESS")
-	private String zookeeperHost;
-
-	@Inject
-	@ConfigVariable(value = "ZOOKEEPER_CONNECTION_RETRY_MS")
-	private int zookeeperConnectionRetryMs;
-
 	private CuratorFramework curatorFramework;
-	private TreeCache cache;
 
-	@PostConstruct
-	public void init() throws Exception
+	@Inject
+	private ServiceDiscovery<Long> serviceDiscovery;
+
+	/**
+	 * @param serviceName the name of the service to register
+	 * @return the id of the newly registered service
+	 */
+	public String register(String serviceName)
 	{
-		this.curatorFramework = CuratorFrameworkFactory.newClient(this.zookeeperHost, new RetryForever(this.zookeeperConnectionRetryMs));
-		this.curatorFramework.start();
-
-		this.createZookeeperTree();
-		this.cache.start();
-	}
-
-	@PreDestroy
-	public void destroy()
-	{
-		this.cache.close();
-		this.curatorFramework.close();
-	}
-
-	private void createZookeeperTree() throws ZookeeperException
-	{
+		String toReturn = null;
+		String basePath = DISCOVERY_BUCKET + ZOOKEEPER_SEPARATOR + serviceName;
 		try
 		{
-			String s = this.curatorFramework.create().orSetData().forPath(DISCOVERY_BUCKET);
-
-			System.out.println(s); //TODO
+			Stat stat = this.curatorFramework.checkExists().forPath(basePath);
+			long instanceId;
+			if (stat != null)
+			{
+				instanceId = stat.getNumChildren();
+			}
+			else
+			{
+				instanceId = 1;
+				this.curatorFramework.createContainers(basePath);
+				//TODO log that a new unknown service was created
+			}
+			ServiceInstance<Long> instance = ServiceInstance.<Long>builder()
+					.name(serviceName)
+					.payload(instanceId)
+					.build();
+			this.serviceDiscovery.registerService(instance);
+			toReturn = instance.getId();
+			//TODO log that a new service instance was registered
 		}
 		catch (Exception e)
 		{
-			throw new ZookeeperException("Could not create initial zookeeper tree", e);
+			//TODO logs
+			e.printStackTrace();
 		}
+		return toReturn;
 	}
 
-	public String getUri(String serviceName) throws ZookeeperException
+	public boolean unregister(String serviceName, String id)
 	{
-		String toReturn = null;
+		boolean toReturn = false;
 		try
 		{
-			Stat stat = this.curatorFramework.checkExists().forPath(DISCOVERY_BUCKET + ZOOKEEPER_SEPARATOR + serviceName);
-			if (stat != null)
+			ServiceInstance<Long> instance = this.serviceDiscovery.queryForInstance(serviceName, id);
+			if (instance != null)
 			{
-				byte[] bytes = this.curatorFramework.getData().forPath(DISCOVERY_BUCKET + ZOOKEEPER_SEPARATOR + serviceName);
-				toReturn = new String(bytes);
+				//TODO log that instance was unregistered
+				this.serviceDiscovery.unregisterService(instance);
+				toReturn = true;
+			}
+			else
+			{
+				//TODO log that nothing was found
 			}
 		}
 		catch (Exception e)
 		{
-			throw new ZookeeperException("Could not get Uri for " + serviceName, e);
+			//TODO logs
+			e.printStackTrace();
+		}
+		return toReturn;
+	}
+
+	public Collection<ServiceInstance<Long>> getChildrenFor(String serviceName)
+	{
+		Collection<ServiceInstance<Long>> toReturn = Collections.emptyList();
+		try
+		{
+			toReturn = this.serviceDiscovery.queryForInstances(serviceName);
+		}
+		catch (Exception e)
+		{
+			//TODO logs
+			e.printStackTrace();
+		}
+		return toReturn;
+	}
+
+	public Collection<String> getAllServices()
+	{
+		Collection<String> toReturn = Collections.emptyList();
+		try
+		{
+			toReturn = this.serviceDiscovery.queryForNames();
+		}
+		catch (Exception e)
+		{
+			//TODO logs
+			e.printStackTrace();
 		}
 
 		return toReturn;
