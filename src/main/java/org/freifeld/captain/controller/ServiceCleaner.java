@@ -1,6 +1,11 @@
 package org.freifeld.captain.controller;
 
+import org.freifeld.captain.controller.configuration.ConfigVariable;
+
 import javax.ejb.*;
+import javax.inject.Inject;
+import java.time.Instant;
+import java.util.Collection;
 
 /**
  * @author royif
@@ -12,11 +17,28 @@ import javax.ejb.*;
 public class ServiceCleaner
 {
 	@EJB
-	ZookeeperNegotiator zookeeperNegotiator;
+	private ZookeeperNegotiator zookeeperNegotiator;
 
-	@Schedule(hour = "*", minute = "*", second = "*/20")
+	@Inject
+	@ConfigVariable("DISCOVERY_SERVICE_NAME")
+	private String discoveryServiceName;
+
+	@Inject
+	@ConfigVariable("HEARTBEAT_THRESHOLD")
+	private int heartbeatThreshold;
+
+	@Schedule(hour = "*", minute = "*", second = "*/30")
 	public void cleanServices()
 	{
-		System.out.println("cleaning");
+		Instant now = Instant.now();
+		this.zookeeperNegotiator.getAllServices().stream()
+				.map(s -> this.zookeeperNegotiator.getChildrenFor(s))
+				.flatMap(Collection::stream)
+				.filter(instance -> !discoveryServiceName.equals(instance.getName()))
+				.filter(instance -> now.minusMillis(instance.getPayload()).toEpochMilli() > this.heartbeatThreshold)
+				.forEach(instance -> {
+					//TODO logs cleaning :instance
+					this.zookeeperNegotiator.unregister(instance);
+				});
 	}
 }

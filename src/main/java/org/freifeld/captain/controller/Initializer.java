@@ -14,6 +14,7 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+import java.time.Instant;
 
 import static org.freifeld.captain.controller.ZookeeperConstants.DISCOVERY_BUCKET;
 
@@ -27,11 +28,11 @@ public class Initializer
 {
 	@Inject
 	@ConfigVariable("DISCOVERY_SERVICE_NAME")
-	private String currentServiceName;
+	private String discoveryServiceName;
 
 	@Inject
 	@ConfigVariable("ZOOKEEPER_ADDRESS")
-	private String zookeeperHost;
+	private String zookeeperAddress;
 
 	@Inject
 	@ConfigVariable("ZOOKEEPER_CONNECTION_RETRY_MS")
@@ -52,7 +53,7 @@ public class Initializer
 
 	private void startCuratorFramework()
 	{
-		this.curatorFramework = CuratorFrameworkFactory.newClient(this.zookeeperHost, new RetryForever(this.zookeeperConnectionRetryMs));
+		this.curatorFramework = CuratorFrameworkFactory.newClient(this.zookeeperAddress, new RetryForever(this.zookeeperConnectionRetryMs));
 		this.curatorFramework.start();
 	}
 
@@ -61,8 +62,8 @@ public class Initializer
 		try
 		{
 			this.thisInstance = ServiceInstance.<Long>builder()
-					.name(this.currentServiceName)
-					.payload(1L)
+					.name(this.discoveryServiceName)
+					.payload(Instant.now().toEpochMilli())
 					.build();
 
 			this.serviceDiscovery = ServiceDiscoveryBuilder.builder(Long.class)

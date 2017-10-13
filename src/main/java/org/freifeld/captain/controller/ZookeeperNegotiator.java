@@ -3,16 +3,12 @@ package org.freifeld.captain.controller;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceInstance;
-import org.apache.zookeeper.data.Stat;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.stream.Collectors;
-
-import static org.freifeld.captain.controller.ZookeeperConstants.DISCOVERY_BUCKET;
-import static org.freifeld.captain.controller.ZookeeperConstants.ZOOKEEPER_SEPARATOR;
 
 /**
  * @author royif
@@ -27,34 +23,17 @@ public class ZookeeperNegotiator
 	@Inject
 	private ServiceDiscovery<Long> serviceDiscovery;
 
-	/**
-	 * @param serviceName the name of the service to register
-	 * @return the id of the newly registered service
-	 */
-	public String register(String serviceName)
+	public ServiceInstance<Long> register(String serviceName)
 	{
-		String toReturn = null;
-		String basePath = DISCOVERY_BUCKET + ZOOKEEPER_SEPARATOR + serviceName;
+		ServiceInstance<Long> toReturn = null;
 		try
 		{
-			Stat stat = this.curatorFramework.checkExists().forPath(basePath);
-			long instanceId;
-			if (stat != null)
-			{
-				instanceId = stat.getNumChildren();
-			}
-			else
-			{
-				instanceId = 1;
-				this.curatorFramework.createContainers(basePath);
-				//TODO log that a new unknown service was created
-			}
 			ServiceInstance<Long> instance = ServiceInstance.<Long>builder()
 					.name(serviceName)
-					.payload(instanceId)
+					.payload(Instant.now().toEpochMilli())
 					.build();
 			this.serviceDiscovery.registerService(instance);
-			toReturn = instance.getId();
+			toReturn = instance;
 			//TODO log that a new service instance was registered
 		}
 		catch (Exception e)
@@ -71,6 +50,21 @@ public class ZookeeperNegotiator
 		try
 		{
 			ServiceInstance<Long> instance = this.serviceDiscovery.queryForInstance(serviceName, id);
+			toReturn = this.unregister(instance);
+		}
+		catch (Exception e)
+		{
+			//TODO logs
+			e.printStackTrace();
+		}
+		return toReturn;
+	}
+
+	public boolean unregister(ServiceInstance<Long> instance)
+	{
+		boolean toReturn = false;
+		try
+		{
 			if (instance != null)
 			{
 				//TODO log that instance was unregistered
@@ -87,6 +81,39 @@ public class ZookeeperNegotiator
 			//TODO logs
 			e.printStackTrace();
 		}
+		return toReturn;
+	}
+
+	public ServiceInstance<Long> update(String name, String id)
+	{
+		ServiceInstance<Long> toReturn = null;
+		try
+		{
+			ServiceInstance<Long> instance = this.serviceDiscovery.queryForInstance(name, id);
+			if (instance != null)
+			{
+				ServiceInstance<Long> updatedInstance = ServiceInstance.<Long>builder()
+						.payload(Instant.now().toEpochMilli())
+						.name(instance.getName())
+						.id(instance.getId())
+						.serviceType(instance.getServiceType())
+						.registrationTimeUTC(instance.getRegistrationTimeUTC())
+						//.port(instance.getPort())
+						//.sslPort(instance.getSslPort())
+						.address(instance.getAddress())
+						.enabled(instance.isEnabled())
+						.uriSpec(instance.getUriSpec())
+						.build();
+				this.serviceDiscovery.updateService(updatedInstance);
+				toReturn = updatedInstance;
+			}
+		}
+		catch (Exception e)
+		{
+			//TODO logs
+			e.printStackTrace();
+		}
+
 		return toReturn;
 	}
 

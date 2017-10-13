@@ -1,33 +1,21 @@
 package org.freifeld.captain.controller.exception;
 
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+
 /**
  * @author royif
  * @since 10/09/17.
  */
-public class ZookeeperException extends RuntimeException
+public class ZookeeperException extends WebApplicationException
 {
 	public ZookeeperException()
 	{
-		super();
+		this("Something went wrong");
 	}
 
 	public ZookeeperException(String message)
 	{
-		super(message);
-	}
-
-	public ZookeeperException(String message, Throwable cause)
-	{
-		super(message, cause);
-	}
-
-	public ZookeeperException(Throwable cause)
-	{
-		super(cause);
-	}
-
-	protected ZookeeperException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace)
-	{
-		super(message, cause, enableSuppression, writableStackTrace);
+		super(Response.status(Response.Status.INTERNAL_SERVER_ERROR).header("X-REASON", message).build());
 	}
 }
