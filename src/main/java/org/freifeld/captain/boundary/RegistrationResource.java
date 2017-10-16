@@ -3,6 +3,7 @@ package org.freifeld.captain.boundary;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.freifeld.captain.controller.ZookeeperNegotiator;
 import org.freifeld.captain.controller.configuration.ConfigVariable;
+import org.freifeld.captain.entity.ServiceData;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
@@ -66,7 +67,7 @@ public class RegistrationResource
 			{
 				return Response.status(Response.Status.BAD_REQUEST).header("X-REASON", "Reserved Name for service discovery").build();
 			}
-			return Optional.ofNullable(this.zookeeper.register(serviceName)).map(instance -> Response.ok(this.toJson(instance)).build()).orElse(Response.noContent().build());
+			return Optional.ofNullable(this.zookeeper.register(serviceName, true)).map(instance -> Response.ok(this.toJson(instance)).build()).orElse(Response.noContent().build());
 		});
 	}
 
@@ -91,13 +92,14 @@ public class RegistrationResource
 		this.bulkhead(response, () -> this.zookeeper.unregister(serviceName, id) ? Response.ok().build() : Response.status(Response.Status.NOT_FOUND).build());
 	}
 
-	private JsonObject toJson(ServiceInstance<Long> instance)
+	private JsonObject toJson(ServiceInstance<ServiceData> instance)
 	{
 		return Json.createObjectBuilder()
 				.add("serviceName", instance.getName())
 				.add("instanceId", instance.getId())
 				.add("registrationTime", Instant.ofEpochMilli(instance.getRegistrationTimeUTC()).toString())
-				.add("heartbeat", Instant.ofEpochMilli(instance.getPayload()).toString())
+				.add("heartbeat", Instant.ofEpochMilli(instance.getPayload().getHeartbeat()).toString())
+				.add("timedConnection", instance.getPayload().isTimedConnection())
 				.build();
 	}
 

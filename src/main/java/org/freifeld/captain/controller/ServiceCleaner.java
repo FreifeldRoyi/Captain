@@ -35,7 +35,8 @@ public class ServiceCleaner
 				.map(s -> this.zookeeperNegotiator.getChildrenFor(s))
 				.flatMap(Collection::stream)
 				.filter(instance -> !discoveryServiceName.equals(instance.getName()))
-				.filter(instance -> now.minusMillis(instance.getPayload()).toEpochMilli() > this.heartbeatThreshold)
+				.filter(instance -> instance.getPayload().isTimedConnection())
+				.filter(instance -> now.minusMillis(instance.getPayload().getHeartbeat()).toEpochMilli() > this.heartbeatThreshold)
 				.forEach(instance -> {
 					//TODO logs cleaning :instance
 					this.zookeeperNegotiator.unregister(instance);

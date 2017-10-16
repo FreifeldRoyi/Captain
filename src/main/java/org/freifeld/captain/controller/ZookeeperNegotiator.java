@@ -3,10 +3,10 @@ package org.freifeld.captain.controller;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceInstance;
+import org.freifeld.captain.entity.ServiceData;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -21,16 +21,16 @@ public class ZookeeperNegotiator
 	private CuratorFramework curatorFramework;
 
 	@Inject
-	private ServiceDiscovery<Long> serviceDiscovery;
+	private ServiceDiscovery<ServiceData> serviceDiscovery;
 
-	public ServiceInstance<Long> register(String serviceName)
+	public ServiceInstance<ServiceData> register(String serviceName, boolean timed)
 	{
-		ServiceInstance<Long> toReturn = null;
+		ServiceInstance<ServiceData> toReturn = null;
 		try
 		{
-			ServiceInstance<Long> instance = ServiceInstance.<Long>builder()
+			ServiceInstance<ServiceData> instance = ServiceInstance.<ServiceData>builder()
 					.name(serviceName)
-					.payload(Instant.now().toEpochMilli())
+					.payload(new ServiceData(timed))
 					.build();
 			this.serviceDiscovery.registerService(instance);
 			toReturn = instance;
@@ -49,7 +49,7 @@ public class ZookeeperNegotiator
 		boolean toReturn = false;
 		try
 		{
-			ServiceInstance<Long> instance = this.serviceDiscovery.queryForInstance(serviceName, id);
+			ServiceInstance<ServiceData> instance = this.serviceDiscovery.queryForInstance(serviceName, id);
 			toReturn = this.unregister(instance);
 		}
 		catch (Exception e)
@@ -60,7 +60,7 @@ public class ZookeeperNegotiator
 		return toReturn;
 	}
 
-	public boolean unregister(ServiceInstance<Long> instance)
+	public boolean unregister(ServiceInstance<ServiceData> instance)
 	{
 		boolean toReturn = false;
 		try
@@ -84,16 +84,16 @@ public class ZookeeperNegotiator
 		return toReturn;
 	}
 
-	public ServiceInstance<Long> update(String name, String id)
+	public ServiceInstance<ServiceData> update(String name, String id)
 	{
-		ServiceInstance<Long> toReturn = null;
+		ServiceInstance<ServiceData> toReturn = null;
 		try
 		{
-			ServiceInstance<Long> instance = this.serviceDiscovery.queryForInstance(name, id);
+			ServiceInstance<ServiceData> instance = this.serviceDiscovery.queryForInstance(name, id);
 			if (instance != null)
 			{
-				ServiceInstance<Long> updatedInstance = ServiceInstance.<Long>builder()
-						.payload(Instant.now().toEpochMilli())
+				ServiceInstance<ServiceData> updatedInstance = ServiceInstance.<ServiceData>builder()
+						.payload(new ServiceData(instance.getPayload()))
 						.name(instance.getName())
 						.id(instance.getId())
 						.serviceType(instance.getServiceType())
@@ -117,9 +117,9 @@ public class ZookeeperNegotiator
 		return toReturn;
 	}
 
-	public Collection<ServiceInstance<Long>> getChildrenFor(String serviceName)
+	public Collection<ServiceInstance<ServiceData>> getChildrenFor(String serviceName)
 	{
-		Collection<ServiceInstance<Long>> toReturn = Collections.emptyList();
+		Collection<ServiceInstance<ServiceData>> toReturn = Collections.emptyList();
 		try
 		{
 			toReturn = this.serviceDiscovery.queryForInstances(serviceName);

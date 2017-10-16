@@ -7,6 +7,7 @@ import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.freifeld.captain.controller.configuration.ConfigVariable;
+import org.freifeld.captain.entity.ServiceData;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -14,7 +15,6 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
-import java.time.Instant;
 
 import static org.freifeld.captain.controller.ZookeeperConstants.DISCOVERY_BUCKET;
 
@@ -40,9 +40,9 @@ public class Initializer
 
 	private CuratorFramework curatorFramework;
 
-	private ServiceDiscovery<Long> serviceDiscovery;
+	private ServiceDiscovery<ServiceData> serviceDiscovery;
 
-	private ServiceInstance<Long> thisInstance;
+	private ServiceInstance<ServiceData> thisInstance;
 
 	@PostConstruct
 	private void init()
@@ -61,12 +61,12 @@ public class Initializer
 	{
 		try
 		{
-			this.thisInstance = ServiceInstance.<Long>builder()
+			this.thisInstance = ServiceInstance.<ServiceData>builder()
 					.name(this.discoveryServiceName)
-					.payload(Instant.now().toEpochMilli())
+					.payload(new ServiceData(false))
 					.build();
 
-			this.serviceDiscovery = ServiceDiscoveryBuilder.builder(Long.class)
+			this.serviceDiscovery = ServiceDiscoveryBuilder.builder(ServiceData.class)
 					.client(this.curatorFramework)
 					.basePath(DISCOVERY_BUCKET)
 					.thisInstance(this.thisInstance)
@@ -94,7 +94,7 @@ public class Initializer
 	}
 
 	@Produces
-	public ServiceDiscovery<Long> serviceDiscovery()
+	public ServiceDiscovery<ServiceData> serviceDiscovery()
 	{
 		return this.serviceDiscovery;
 	}
