@@ -18,7 +18,7 @@
         <failOnMissingWebXml>false</failOnMissingWebXml>
 
         <!-- Provided dependencies -->
-        <version.javaee-api>7.0</version.javaee-api>
+        <version.javaee-api>8.0</version.javaee-api>
         <version.jcache-api>1.0.0</version.jcache-api>
 
         <!-- Dependencies -->
@@ -38,6 +38,12 @@
             <artifactId>javaee-api</artifactId>
             <version>${version.javaee-api}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airhacks</groupId>
+            <artifactId>jaxrs-cors</artifactId>
+            <version>0.0.2</version>
         </dependency>
 
         <dependency>

@@ -2,6 +2,7 @@ package org.freifeld.captain.boundary;
 
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.freifeld.captain.controller.ZookeeperNegotiator;
+import org.freifeld.captain.controller.websocket.SessionHandler;
 import org.freifeld.captain.entity.ServiceData;
 
 import javax.ejb.EJB;
@@ -14,10 +15,13 @@ import java.io.IOException;
  * @author royif
  * @since 16/10/17.
  */
-@ServerEndpoint(value = "/registrations/{serviceName}")
+@ServerEndpoint(value = "/v1/registrations/{serviceName}")
 public class RegistrationEndpoint
 {
 	private ServiceInstance<ServiceData> instance;
+
+	@EJB
+	private SessionHandler sessionHandler;
 
 	@EJB
 	private ZookeeperNegotiator zookeeper;
@@ -27,10 +31,11 @@ public class RegistrationEndpoint
 	{
 		this.instance = zookeeper.register(serviceName, false);
 		session.getBasicRemote().sendText(instance.getId());
+		this.sessionHandler.addSession(serviceName, session);
 	}
 
 	@OnClose
-	public void unregister(Session session) throws IOException
+	public void unregister(@PathParam("serviceName") String serviceName, Session session) throws IOException
 	{
 		if (this.instance != null)
 		{
@@ -42,12 +47,13 @@ public class RegistrationEndpoint
 			//TODO logs
 			System.out.println("Instance was not initialized so we're cool =)");
 		}
+		this.sessionHandler.removeSession(serviceName, session);
 	}
 
 	@OnMessage
-	public void watch(String message, Session session) throws IOException
+	public void onMessage(String message, Session session) throws IOException
 	{
-		//TODO implement
+		//TODO implement - stuff to consider
 		System.out.println("watching " + message);
 		session.getBasicRemote().sendText("Echo for " + this.instance.getName() + "/" + this.instance.getId() + ": " + message);
 	}
