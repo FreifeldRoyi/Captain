@@ -1,9 +1,10 @@
 package org.freifeld.captain.boundary;
 
 import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.UriSpec;
 import org.freifeld.captain.controller.ZookeeperNegotiator;
 import org.freifeld.captain.controller.configuration.ConfigVariable;
-import org.freifeld.captain.entity.ServiceData;
+import org.freifeld.captain.entity.InstanceData;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
@@ -12,17 +13,20 @@ import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
 import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * @author royif
@@ -38,7 +42,7 @@ public class RegistrationResource
 	private ManagedExecutorService mes;
 
 	@EJB
-	private ZookeeperNegotiator zookeeper;
+	private ZookeeperNegotiator zookeeperNegotiator;
 
 	@Inject
 	@ConfigVariable("DISCOVERY_SERVICE_NAME")
@@ -47,19 +51,39 @@ public class RegistrationResource
 	@GET
 	public void getRegistrations(@Suspended AsyncResponse response)
 	{
-		this.bulkhead(response, () -> this.zookeeper.getAllServices());
+		this.bulkhead(response, () -> this.zookeeperNegotiator.getAllServices());
 	}
+
+	//	@GET
+	//	@Path("{serviceName}")
+	//	public void getChildren(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName)
+	//	{
+	//		this.bulkhead(response, () -> this.zookeeperNegotiator.getChildrenFor(serviceName).stream().map(this::toJson).collect(Collectors.toList()));
+	//	}
 
 	@GET
 	@Path("{serviceName}")
-	public void getChildren(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName)
+	public void discover(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName)
 	{
-		this.bulkhead(response, () -> this.zookeeper.getChildrenFor(serviceName).stream().map(this::toJson).collect(Collectors.toList()));
+		this.bulkhead(response, () ->
+		{
+			Response toReturn;
+			ServiceInstance<InstanceData> instance = this.zookeeperNegotiator.discoverInstance(serviceName);
+			if (instance == null)
+			{
+				toReturn = Response.status(Response.Status.NOT_FOUND).build();
+			}
+			else
+			{
+				toReturn = Response.ok(this.toJson(instance)).build();
+			}
+			return toReturn;
+		});
 	}
 
-	@PUT
+	@POST
 	@Path("{serviceName}")
-	public void registerService(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName)
+	public void registerService(@Suspended AsyncResponse response, @Context UriInfo uriInfo, @PathParam("serviceName") String serviceName)
 	{
 		this.bulkhead(response, () ->
 		{
@@ -67,11 +91,13 @@ public class RegistrationResource
 			{
 				return Response.status(Response.Status.BAD_REQUEST).header("X-REASON", "Reserved Name for service discovery").build();
 			}
-			return Optional.ofNullable(this.zookeeper.register(serviceName, true)).map(instance -> Response.ok(this.toJson(instance)).build()).orElse(Response.noContent().build());
+			return Optional.ofNullable(this.zookeeperNegotiator.register(serviceName, true))
+					.map(instance -> Response.created(URI.create(uriInfo.getRequestUri().toString() + "/" + instance.getId())).entity(this.toJson(instance)).build())
+					.orElse(Response.noContent().build());
 		});
 	}
 
-	@POST
+	@PUT
 	@Path("{serviceName}/{id}")
 	public void keepAlive(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName, @PathParam("id") String id)
 	{
@@ -81,7 +107,8 @@ public class RegistrationResource
 			{
 				return Response.status(Response.Status.BAD_REQUEST).header("X-REASON", "Cannot update this service since it is reserved for service discovery").build();
 			}
-			return Optional.ofNullable(this.zookeeper.update(serviceName, id)).map(instance -> Response.ok(this.toJson(instance)).build()).orElse(Response.status(Response.Status.NOT_FOUND).build());
+			return Optional.ofNullable(this.zookeeperNegotiator.update(serviceName, id)).map(instance -> Response.ok(this.toJson(instance)).build())
+					.orElse(Response.status(Response.Status.NOT_FOUND).build());
 		});
 	}
 
@@ -89,10 +116,10 @@ public class RegistrationResource
 	@Path("{serviceName}/{id}")
 	public void unregisterServiceInstance(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName, @PathParam("id") String id)
 	{
-		this.bulkhead(response, () -> this.zookeeper.unregister(serviceName, id) ? Response.ok().build() : Response.status(Response.Status.NOT_FOUND).build());
+		this.bulkhead(response, () -> this.zookeeperNegotiator.unregister(serviceName, id) ? Response.ok().build() : Response.status(Response.Status.NOT_FOUND).build());
 	}
 
-	private JsonObject toJson(ServiceInstance<ServiceData> instance)
+	private JsonObject toJson(ServiceInstance<InstanceData> instance)
 	{
 		return Json.createObjectBuilder()
 				.add("serviceName", instance.getName())
@@ -100,6 +127,10 @@ public class RegistrationResource
 				.add("registrationTime", Instant.ofEpochMilli(instance.getRegistrationTimeUTC()).toString())
 				.add("heartbeat", Instant.ofEpochMilli(instance.getPayload().getHeartbeat()).toString())
 				.add("timedConnection", instance.getPayload().isTimedConnection())
+				.add("port", Optional.ofNullable(instance.getPort()).map(String::valueOf).orElse(JsonValue.NULL.toString()))
+				.add("address", Optional.ofNullable(instance.getAddress()).map(String::valueOf).orElse(JsonValue.NULL.toString()))
+				.add("sslPort", Optional.ofNullable(instance.getSslPort()).map(String::valueOf).orElse(JsonValue.NULL.toString()))
+				.add("uriSpec", Optional.ofNullable(instance.getUriSpec()).map(UriSpec::build).orElse(JsonValue.NULL.toString()))
 				.build();
 	}
 

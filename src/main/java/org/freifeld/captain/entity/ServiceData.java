@@ -1,44 +1,47 @@
 package org.freifeld.captain.entity;
 
-import java.time.Instant;
-
 /**
  * @author royif
- * @since 16/10/17.
+ * @since 13/11/17.
  */
 public class ServiceData
 {
-	private long heartbeat;
-	private boolean timedConnection;
+	private String serviceName;
+	private InstanceProviderStrategy providerStrategy;
 
 	public ServiceData()
 	{
-		this(true);
 	}
 
-	public ServiceData(ServiceData other)
+	/**
+	 * Constructs a ServiceData object with {@link InstanceProviderStrategy#RANDOM} as the default provider strategy
+	 *
+	 * @param serviceName - the service name
+	 */
+	public ServiceData(String serviceName)
 	{
-		this(other.timedConnection);
+		this(serviceName, InstanceProviderStrategy.RANDOM);
 	}
 
-	public ServiceData(boolean timedConnection)
+	public ServiceData(String serviceName, InstanceProviderStrategy providerStrategy)
 	{
-		this.timedConnection = timedConnection;
-		this.heartbeat = Instant.now().toEpochMilli();
+		this.serviceName = serviceName;
+		this.providerStrategy = providerStrategy;
 	}
 
-	public long getHeartbeat()
+	public String getServiceName()
 	{
-		return this.heartbeat;
+		return this.serviceName;
 	}
 
-	public void setHeartbeat(long heartbeat)
+	public InstanceProviderStrategy getProviderStrategy()
 	{
-		this.heartbeat = heartbeat;
+		return this.providerStrategy;
 	}
 
-	public boolean isTimedConnection()
+	@Override
+	public String toString()
 	{
-		return this.timedConnection;
+		return String.format("{serviceName : %s , providerStrategy : %s}", this.serviceName, this.providerStrategy);
 	}
 }

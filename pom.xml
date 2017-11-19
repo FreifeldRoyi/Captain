@@ -18,14 +18,13 @@
         <failOnMissingWebXml>false</failOnMissingWebXml>
 
         <!-- Provided dependencies -->
-        <version.javaee-api>7.0</version.javaee-api>
-        <version.jcache-api>1.0.0</version.jcache-api>
+        <version.javaee-api>8.0</version.javaee-api>
 
         <!-- Dependencies -->
         <version.curator>4.0.0</version.curator>
         <version.zookeeper>3.4.10</version.zookeeper>
         <version.logging.slf4j>1.7.25</version.logging.slf4j>
-        <version.logging.log4j>2.8.2</version.logging.log4j>
+        <version.logging.log4j>2.9.1</version.logging.log4j>
     </properties>
 
     <build>
