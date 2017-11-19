@@ -51,10 +51,7 @@ public class RegistrationSSEResource
 		SseBroadcaster broadcaster = Optional.ofNullable(this.sseBroadcasters.get(serviceName)).orElseGet(() ->
 		{
 			SseBroadcaster toReturn = this.sse.newBroadcaster();
-			toReturn.onClose(sink ->
-			{
-				this.onClose(sink);
-			}); //TODO NOT WORKING
+			toReturn.onClose(this::onClose); //TODO NOT WORKING
 			toReturn.onError((eventSink1, throwable) ->
 			{
 				throwable.printStackTrace();
