@@ -50,16 +50,13 @@ public class RegistrationSSEResource
 		this.sse = sse;
 		SseBroadcaster broadcaster = Optional.ofNullable(this.sseBroadcasters.get(serviceName)).orElseGet(() ->
 		{
-			System.out.println("HERE 222@@@");
 			SseBroadcaster toReturn = this.sse.newBroadcaster();
 			toReturn.onClose(sink ->
 			{
-				System.out.println("CLOSING sink");
 				this.onClose(sink);
 			}); //TODO NOT WORKING
 			toReturn.onError((eventSink1, throwable) ->
 			{
-				System.out.println("sink error");
 				throwable.printStackTrace();
 			}); //TODO NOT WORKING
 			return toReturn;
@@ -91,7 +88,6 @@ public class RegistrationSSEResource
 		this.sseBroadcasters.forEach((serviceName, broadcaster) ->
 		{
 			OutboundSseEvent event = this.sse.newEventBuilder().comment("this is a comment").data("This is my data " + serviceName).id("some id").name("This is a name").build();
-			System.out.println(String.format("Sending to %s: %s", serviceName, event.toString()));
 			broadcaster.broadcast(event);
 		});
 	}

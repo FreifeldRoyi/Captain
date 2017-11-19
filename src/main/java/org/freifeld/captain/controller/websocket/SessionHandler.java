@@ -13,6 +13,7 @@ import java.util.*;
 @ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
 public class SessionHandler
 {
+	//TODO need to test what is faster - container locking or ConcurrentHashMap
 	private Map<String, Set<Session>> sessions;
 
 	@PostConstruct

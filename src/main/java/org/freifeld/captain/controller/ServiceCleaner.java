@@ -1,6 +1,8 @@
 package org.freifeld.captain.controller;
 
 import org.freifeld.captain.controller.configuration.ConfigVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ejb.*;
 import javax.inject.Inject;
@@ -16,6 +18,8 @@ import java.util.Collection;
 @DependsOn("Initializer")
 public class ServiceCleaner
 {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCleaner.class);
+
 	@EJB
 	private ZookeeperNegotiator zookeeperNegotiator;
 
@@ -37,8 +41,9 @@ public class ServiceCleaner
 				.filter(instance -> !discoveryServiceName.equals(instance.getName()))
 				.filter(instance -> instance.getPayload().isTimedConnection())
 				.filter(instance -> now.minusMillis(instance.getPayload().getHeartbeat()).toEpochMilli() > this.heartbeatThreshold)
-				.forEach(instance -> {
-					//TODO logs cleaning :instance
+				.forEach(instance ->
+				{
+					LOGGER.info("Cleaning service {}/{}", instance.getName(), instance.getId());
 					this.zookeeperNegotiator.unregister(instance);
 				});
 	}
