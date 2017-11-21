@@ -121,21 +121,22 @@ public class Initializer
 			this.serviceCache.start();
 			this.serviceCache.getListenable().addListener((client, event) ->
 			{
-				if (!event.getData().getPath().equals(ZookeeperConstants.DISCOVERY_BUCKET))
+				LOGGER.info("Captain {} - New cache event: \"{}\"", this.thisInstance.getId(), event);
+				switch (event.getType())
 				{
-					switch (event.getType())
+					case NODE_ADDED:
 					{
-						case NODE_ADDED:
+						if (!event.getData().getPath().equals(ZookeeperConstants.DISCOVERY_BUCKET))
 						{
 							this.initServiceProvider(event.getData());
-							break;
 						}
-						case NODE_UPDATED:
-						case NODE_REMOVED:
-						default:
-						{
-							break;
-						}
+						break;
+					}
+					case NODE_UPDATED:
+					case NODE_REMOVED:
+					default:
+					{
+						break;
 					}
 				}
 			});
@@ -148,33 +149,33 @@ public class Initializer
 
 	private void initServiceProvider(ChildData childData)
 	{
-		LOGGER.info("Trying to add a new ServiceProvider: {}", childData);
+		LOGGER.info("Trying to add a new ServiceProvider: \"{}\"", childData);
 		String data = new String(childData.getData());
 		Jsonb jsonb = JsonbBuilder.create();
 		ServiceData serviceData = null;
-		try
-		{
-			serviceData = jsonb.fromJson(data, ServiceData.class);
-		}
-		catch (JsonbException | NoSuchElementException e)
-		{
-			LOGGER.warn("Problem parsing ServiceData for {}", data, e);
-			Optional<String> optionalServiceName = extractServiceName(childData.getPath());
-			if (optionalServiceName.isPresent())
-			{
-				serviceData = new ServiceData(extractServiceName(childData.getPath()).get());
-			}
-			else
-			{
-				String errorMsg = String.format("Cannot read service name from Zookeeper! Something went wrong while trying to store data for  event %s", childData);
-				LOGGER.error(errorMsg);
-				throw new IllegalStateException(errorMsg);
-			}
 
+		String serviceName = Optional.of(extractServiceName(childData.getPath()))
+				.orElseThrow(() -> new IllegalStateException("Cannot read service name from Zookeeper! Something went wrong while trying to store data for event " + childData));
+
+		if ("".equals(data))
+		{
+			serviceData = new ServiceData(serviceName);
+		}
+		else
+		{
+			try
+			{
+				serviceData = jsonb.fromJson(data, ServiceData.class);
+			}
+			catch (JsonbException | NoSuchElementException e)
+			{
+				LOGGER.warn("Problem parsing ServiceData provided: {}", data, e);
+				serviceData = new ServiceData(serviceName);
+			}
 		}
 
 		this.addServiceProvider(serviceData);
-		LOGGER.info("A new ServiceData {} was added for {}", serviceData, childData);
+		LOGGER.info("A new ServiceData {} was added from {}", serviceData, childData);
 	}
 
 	public void addServiceProvider(@Observes ServiceData serviceData)
@@ -190,7 +191,7 @@ public class Initializer
 			ServiceProvider<InstanceData> previousVal = this.providers.putIfAbsent(serviceData.getServiceName(), provider);
 			if (previousVal == null)
 			{
-				LOGGER.info("Captain {} - Set Service \"{}\" provider strategy to {}", this.thisInstance.getId(), serviceData.getServiceName(), serviceData.getProviderStrategy().name());
+				LOGGER.info("Captain {} - Set Service {} provider strategy to {}", this.thisInstance.getId(), serviceData.getServiceName(), serviceData.getProviderStrategy().name());
 			}
 		}
 		catch (Exception e)

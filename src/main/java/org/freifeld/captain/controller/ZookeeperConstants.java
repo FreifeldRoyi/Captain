@@ -1,7 +1,6 @@
 package org.freifeld.captain.controller;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 /**
  * @author royif
@@ -26,16 +25,16 @@ public class ZookeeperConstants
 	 * @return an Optional containing the extracted service name or an empty
 	 * optional if no serviceName has been found
 	 */
-	public static Optional<String> extractServiceName(String path)
+	public static String extractServiceName(String path)
 	{
-		Optional<String> toReturn = Optional.empty();
+		String toReturn = null;
 		String pathPrefix = DISCOVERY_BUCKET + ZOOKEEPER_SEPARATOR;
 		if (path.startsWith(pathPrefix))
 		{
 			String possibleServiceName = path.substring(pathPrefix.length());
 			if (!possibleServiceName.equals(""))
 			{
-				toReturn = Optional.of(possibleServiceName);
+				toReturn = possibleServiceName;
 			}
 		}
 
