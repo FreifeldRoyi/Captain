@@ -1,6 +1,7 @@
 package org.freifeld.captain.controller;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * @author royif
@@ -8,11 +9,36 @@ import java.util.Arrays;
  */
 public class ZookeeperConstants
 {
+
 	static final String ZOOKEEPER_SEPARATOR = "/";
 	static final String DISCOVERY_BUCKET = ZOOKEEPER_SEPARATOR + "ServiceDiscovery";
 
 	public static String buildServiceBucket(String... path)
 	{
 		return Arrays.stream(path).reduce((s, s2) -> s + ZOOKEEPER_SEPARATOR + s2).map(s -> DISCOVERY_BUCKET + ZOOKEEPER_SEPARATOR + s).orElse(DISCOVERY_BUCKET);
+	}
+
+	/**
+	 * Extracts the service name from a full Zookeeper path including the
+	 * {@link #DISCOVERY_BUCKET} & {@link #ZOOKEEPER_SEPARATOR}
+	 *
+	 * @param path - non null full Zookeeper node path
+	 * @return an Optional containing the extracted service name or an empty
+	 * optional if no serviceName has been found
+	 */
+	public static Optional<String> extractServiceName(String path)
+	{
+		Optional<String> toReturn = Optional.empty();
+		String pathPrefix = DISCOVERY_BUCKET + ZOOKEEPER_SEPARATOR;
+		if (path.startsWith(pathPrefix))
+		{
+			String possibleServiceName = path.substring(pathPrefix.length());
+			if (!possibleServiceName.equals(""))
+			{
+				toReturn = Optional.of(possibleServiceName);
+			}
+		}
+
+		return toReturn;
 	}
 }

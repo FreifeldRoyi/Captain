@@ -16,7 +16,7 @@ public enum InstanceProviderStrategy
 	RANDOM(RandomStrategy::new),
 	STICKY(RandomStrategy::new); //TODO should implement
 
-	private Supplier<ProviderStrategy<InstanceData>> supplier;
+	private final Supplier<ProviderStrategy<InstanceData>> supplier;
 
 	InstanceProviderStrategy(Supplier<ProviderStrategy<InstanceData>> supplier)
 	{

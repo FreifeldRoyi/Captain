@@ -2,6 +2,7 @@ package org.freifeld.captain.controller;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.retry.RetryForever;
 import org.apache.curator.utils.CloseableUtils;
@@ -26,10 +27,12 @@ import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 import javax.json.bind.JsonbException;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.freifeld.captain.controller.ZookeeperConstants.buildServiceBucket;
+import static org.freifeld.captain.controller.ZookeeperConstants.extractServiceName;
 
 /**
  * @author royif
@@ -70,7 +73,6 @@ public class Initializer
 		this.startCuratorFramework();
 		this.startServiceDiscovery();
 		this.startServiceCache();
-		this.startServiceProviders();
 		LOGGER.info("Captain {} - Initialization complete", this.thisInstance.getId());
 	}
 
@@ -107,18 +109,36 @@ public class Initializer
 
 	private void startServiceCache()
 	{
+		LOGGER.info("Captain {} - Initializing Service Providers", this.thisInstance.getId());
+		this.providers = new ConcurrentHashMap<>();
+
 		LOGGER.info("Captain {} - Initializing Service Cache", this.thisInstance.getId());
 		try
 		{
-			this.serviceCache = TreeCache.newBuilder(this.curatorFramework, buildServiceBucket())
+			this.serviceCache = TreeCache.newBuilder(this.curatorFramework, ZookeeperConstants.DISCOVERY_BUCKET)
 					.setMaxDepth(1)
 					.build();
 			this.serviceCache.start();
-			/*
-			 * TODO should add change listeners
-			 * NOTE that once this tree is active changes will occur even when startServiceProviders has not finished
-			 * 	A listener should be added with some sort of action queue and a handler thread and use addServiceProvider
-			 */
+			this.serviceCache.getListenable().addListener((client, event) ->
+			{
+				if (!event.getData().getPath().equals(ZookeeperConstants.DISCOVERY_BUCKET))
+				{
+					switch (event.getType())
+					{
+						case NODE_ADDED:
+						{
+							this.initServiceProvider(event.getData());
+							break;
+						}
+						case NODE_UPDATED:
+						case NODE_REMOVED:
+						default:
+						{
+							break;
+						}
+					}
+				}
+			});
 		}
 		catch (Exception e)
 		{
@@ -126,28 +146,35 @@ public class Initializer
 		}
 	}
 
-	private void startServiceProviders()
+	private void initServiceProvider(ChildData childData)
 	{
-		LOGGER.info("Captain {} - Initializing Service Providers", this.thisInstance.getId());
-		this.providers = new ConcurrentHashMap<>();
-		this.serviceCache.getCurrentChildren(buildServiceBucket()).forEach((serviceName, childData) ->
+		LOGGER.info("Trying to add a new ServiceProvider: {}", childData);
+		String data = new String(childData.getData());
+		Jsonb jsonb = JsonbBuilder.create();
+		ServiceData serviceData = null;
+		try
 		{
-			String data = new String(childData.getData());
-			Jsonb jsonb = JsonbBuilder.create();
-			ServiceData serviceData = null;
-			try
+			serviceData = jsonb.fromJson(data, ServiceData.class);
+		}
+		catch (JsonbException | NoSuchElementException e)
+		{
+			LOGGER.warn("Problem parsing ServiceData for {}", data, e);
+			Optional<String> optionalServiceName = extractServiceName(childData.getPath());
+			if (optionalServiceName.isPresent())
 			{
-				serviceData = jsonb.fromJson(data, ServiceData.class);
+				serviceData = new ServiceData(extractServiceName(childData.getPath()).get());
 			}
-			catch (JsonbException | NoSuchElementException e)
+			else
 			{
-				LOGGER.warn("Problem parsing ServiceData for {}", data, e);
-				//					this.curatorFramework.setData().forPath(serviceName, InstanceProviderStrategy.RANDOM.name().getBytes());
-				serviceData = new ServiceData(serviceName);
+				String errorMsg = String.format("Cannot read service name from Zookeeper! Something went wrong while trying to store data for  event %s", childData);
+				LOGGER.error(errorMsg);
+				throw new IllegalStateException(errorMsg);
 			}
 
-			this.addServiceProvider(serviceData);
-		});
+		}
+
+		this.addServiceProvider(serviceData);
+		LOGGER.info("A new ServiceData {} was added for {}", serviceData, childData);
 	}
 
 	public void addServiceProvider(@Observes ServiceData serviceData)

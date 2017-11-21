@@ -11,6 +11,7 @@ public class ServiceData
 
 	public ServiceData()
 	{
+		this(null);
 	}
 
 	/**
