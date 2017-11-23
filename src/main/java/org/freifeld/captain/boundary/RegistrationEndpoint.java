@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ejb.EJB;
+import javax.ejb.Stateless;
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
@@ -17,6 +18,7 @@ import java.io.IOException;
  * @author royif
  * @since 16/10/17.
  */
+@Stateless
 @ServerEndpoint(value = "/v1/registrations/{serviceName}")
 public class RegistrationEndpoint
 {
@@ -28,12 +30,12 @@ public class RegistrationEndpoint
 	private SessionHandler sessionHandler;
 
 	@EJB
-	private ZookeeperNegotiator zookeeper;
+	private ZookeeperNegotiator zookeeperNegotiator;
 
 	@OnOpen
 	public void register(@PathParam("serviceName") String serviceName, Session session) throws IOException
 	{
-		this.instance = zookeeper.register(serviceName, false);
+		this.instance = zookeeperNegotiator.register(serviceName, false);
 		session.getBasicRemote().sendText(instance.getId());
 		this.sessionHandler.addSession(serviceName, session);
 		LOGGER.info("Successfully registered service instance {}/{} on websocket session {}", this.instance.getName(), this.instance.getId(), session.getId());
@@ -44,7 +46,7 @@ public class RegistrationEndpoint
 	{
 		if (this.instance != null)
 		{
-			this.zookeeper.unregister(this.instance);
+			this.zookeeperNegotiator.unregisterInstance(this.instance);
 			LOGGER.info("Successfully unregistered service instance {}/{} on websocket session {}", this.instance.getName(), this.instance.getId(), session.getId());
 		}
 		else

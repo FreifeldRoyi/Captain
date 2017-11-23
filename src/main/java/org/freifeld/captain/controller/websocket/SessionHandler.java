@@ -1,5 +1,8 @@
 package org.freifeld.captain.controller.websocket;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.PostConstruct;
 import javax.ejb.*;
 import javax.websocket.Session;
@@ -13,6 +16,8 @@ import java.util.*;
 @ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
 public class SessionHandler
 {
+	private static final Logger LOGGER = LoggerFactory.getLogger(SessionHandler.class);
+
 	//TODO need to test what is faster - container locking or ConcurrentHashMap
 	private Map<String, Set<Session>> sessions;
 
@@ -20,6 +25,7 @@ public class SessionHandler
 	public void setup()
 	{
 		this.sessions = new HashMap<>();
+		LOGGER.info("Initialized WebSocket session handler");
 	}
 
 	@Lock(LockType.WRITE)

@@ -4,6 +4,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
 import org.apache.curator.retry.RetryForever;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.x.discovery.ServiceDiscovery;
@@ -90,7 +91,7 @@ public class Initializer
 		{
 			this.thisInstance = ServiceInstance.<InstanceData>builder()
 					.name(this.discoveryServiceName)
-					.payload(new InstanceData(false))
+					.payload(new InstanceData(this.discoveryServiceName, false))
 					.build();
 
 			this.serviceDiscovery = ServiceDiscoveryBuilder.builder(InstanceData.class)
@@ -122,22 +123,9 @@ public class Initializer
 			this.serviceCache.getListenable().addListener((client, event) ->
 			{
 				LOGGER.info("Captain {} - New cache event: \"{}\"", this.thisInstance.getId(), event);
-				switch (event.getType())
+				if (event.getType() == TreeCacheEvent.Type.NODE_ADDED && !event.getData().getPath().equals(ZookeeperConstants.DISCOVERY_BUCKET)) // Ignore this Captain's instance
 				{
-					case NODE_ADDED:
-					{
-						if (!event.getData().getPath().equals(ZookeeperConstants.DISCOVERY_BUCKET))
-						{
-							this.initServiceProvider(event.getData());
-						}
-						break;
-					}
-					case NODE_UPDATED:
-					case NODE_REMOVED:
-					default:
-					{
-						break;
-					}
+					this.initServiceProvider(event.getData());
 				}
 			});
 		}

@@ -44,7 +44,7 @@ public class ServiceCleaner
 				.forEach(instance ->
 				{
 					LOGGER.info("Cleaning service {}/{}", instance.getName(), instance.getId());
-					this.zookeeperNegotiator.unregister(instance);
+					this.zookeeperNegotiator.unregisterInstance(instance);
 				});
 	}
 }

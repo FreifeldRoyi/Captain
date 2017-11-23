@@ -8,23 +8,26 @@ import java.time.Instant;
  */
 public class InstanceData
 {
+	private String serviceName;
 	private long heartbeat;
 	private boolean timedConnection;
 
-	public InstanceData()
-	{
-		this(true);
-	}
-
 	public InstanceData(InstanceData other)
 	{
-		this(other.timedConnection);
+		this(other.serviceName, other.timedConnection);
 	}
 
-	public InstanceData(boolean timedConnection)
+	public InstanceData(String serviceName, boolean timedConnection)
 	{
+
+		this.serviceName = serviceName;
 		this.timedConnection = timedConnection;
 		this.heartbeat = Instant.now().toEpochMilli();
+	}
+
+	public String getServiceName()
+	{
+		return serviceName;
 	}
 
 	public long getHeartbeat()

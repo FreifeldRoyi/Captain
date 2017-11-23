@@ -116,7 +116,7 @@ public class RegistrationResource
 	@Path("{serviceName}/{id}")
 	public void unregisterServiceInstance(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName, @PathParam("id") String id)
 	{
-		this.bulkhead(response, () -> this.zookeeperNegotiator.unregister(serviceName, id) ? Response.ok().build() : Response.status(Response.Status.NOT_FOUND).build());
+		this.bulkhead(response, () -> this.zookeeperNegotiator.unregisterInstance(serviceName, id) ? Response.ok().build() : Response.status(Response.Status.NOT_FOUND).build());
 	}
 
 	private JsonObject toJson(ServiceInstance<InstanceData> instance)

@@ -5,6 +5,7 @@ import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.ServiceProvider;
 import org.freifeld.captain.entity.InstanceData;
 import org.freifeld.captain.entity.ServiceData;
+import org.freifeld.captain.entity.events.InstanceRegistrationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,7 @@ public class ZookeeperNegotiator
 	private ConcurrentMap<String, ServiceProvider<InstanceData>> providers;
 
 	@Inject
-	private Event<ServiceData> registrationEvent;
+	private Event<InstanceRegistrationEvent> registrationEvent;
 
 	public ServiceInstance<InstanceData> register(String serviceName, boolean timed)
 	{
@@ -41,11 +42,11 @@ public class ZookeeperNegotiator
 		{
 			ServiceInstance<InstanceData> instance = ServiceInstance.<InstanceData>builder()
 					.name(serviceName)
-					.payload(new InstanceData(timed))
+					.payload(new InstanceData(serviceName, timed))
 					.build();
 			this.serviceDiscovery.registerService(instance);
 			toReturn = instance;
-			this.registrationEvent.fire(new ServiceData(serviceName));
+			this.registrationEvent.fire(new InstanceRegistrationEvent(new ServiceData(serviceName))); //TODO this is horrible. use some factory
 			LOGGER.info("A new service instance was registered {}/{}", instance.getName(), instance.getId());
 		}
 		catch (Exception e)
@@ -55,7 +56,8 @@ public class ZookeeperNegotiator
 		return toReturn;
 	}
 
-	public boolean unregister(String serviceName, String id)
+	//TODO should think of a better return value then a boolean
+	public boolean unregisterInstance(String serviceName, String id)
 	{
 		boolean toReturn = false;
 		try
@@ -63,7 +65,7 @@ public class ZookeeperNegotiator
 			ServiceInstance<InstanceData> instance = this.serviceDiscovery.queryForInstance(serviceName, id);
 			if (instance != null)
 			{
-				toReturn = this.unregister(instance);
+				toReturn = this.unregisterInstance(instance);
 			}
 			else
 			{
@@ -83,7 +85,8 @@ public class ZookeeperNegotiator
 	 * @param instance - non null service instance
 	 * @return true if the service was unregistered, false otherwise
 	 */
-	public boolean unregister(ServiceInstance<InstanceData> instance)
+	//TODO should think of a better return value then a boolean
+	public boolean unregisterInstance(ServiceInstance<InstanceData> instance)
 	{
 		boolean toReturn = false;
 		try
