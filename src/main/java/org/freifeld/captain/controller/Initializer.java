@@ -1,5 +1,19 @@
 package org.freifeld.captain.controller;
 
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
+import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
+import javax.json.bind.Jsonb;
+import javax.json.bind.JsonbBuilder;
+import javax.json.bind.JsonbException;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -11,29 +25,13 @@ import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.ServiceProvider;
+import static org.freifeld.captain.controller.ZookeeperConstants.buildServiceBucket;
+import static org.freifeld.captain.controller.ZookeeperConstants.extractServiceName;
 import org.freifeld.captain.controller.configuration.ConfigVariable;
 import org.freifeld.captain.entity.InstanceData;
 import org.freifeld.captain.entity.ServiceData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbException;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import static org.freifeld.captain.controller.ZookeeperConstants.buildServiceBucket;
-import static org.freifeld.captain.controller.ZookeeperConstants.extractServiceName;
 
 /**
  * @author royif
@@ -92,6 +90,7 @@ public class Initializer
 			this.thisInstance = ServiceInstance.<InstanceData>builder()
 					.name(this.discoveryServiceName)
 					.payload(new InstanceData(false))
+                                        .port(8080)
 					.build();
 
 			this.serviceDiscovery = ServiceDiscoveryBuilder.builder(InstanceData.class)

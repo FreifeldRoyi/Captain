@@ -1,19 +1,17 @@
 package org.freifeld.captain.boundary;
 
-import org.apache.curator.x.discovery.ServiceInstance;
-import org.apache.curator.x.discovery.UriSpec;
-import org.freifeld.captain.controller.ZookeeperNegotiator;
-import org.freifeld.captain.controller.configuration.ConfigVariable;
-import org.freifeld.captain.entity.InstanceData;
-
+import java.net.URI;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.inject.Inject;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonValue;
+import javax.json.*;
 import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
@@ -21,12 +19,11 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.time.Instant;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.UriSpec;
+import org.freifeld.captain.controller.ZookeeperNegotiator;
+import org.freifeld.captain.controller.configuration.ConfigVariable;
+import org.freifeld.captain.entity.InstanceData;
 
 /**
  * @author royif
@@ -51,7 +48,15 @@ public class RegistrationResource
 	@GET
 	public void getRegistrations(@Suspended AsyncResponse response)
 	{
-		this.bulkhead(response, () -> this.zookeeperNegotiator.getAllServices());
+		this.bulkhead(response, () -> {
+			JsonObjectBuilder allServices = Json.createObjectBuilder();
+			this.zookeeperNegotiator.getAllServices().forEach(s -> {
+				JsonArrayBuilder serviceArray = Json.createArrayBuilder();
+				this.zookeeperNegotiator.getChildrenFor(s).stream().map(this::toJson).forEach(serviceArray::add);
+				allServices.add(s, serviceArray);
+			});
+			return Response.ok(allServices.build()).build();
+		});
 	}
 
 	@GET
