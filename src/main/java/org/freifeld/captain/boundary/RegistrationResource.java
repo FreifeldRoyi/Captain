@@ -54,13 +54,6 @@ public class RegistrationResource
 		this.bulkhead(response, () -> this.zookeeperNegotiator.getAllServices());
 	}
 
-	//	@GET
-	//	@Path("{serviceName}")
-	//	public void getChildren(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName)
-	//	{
-	//		this.bulkhead(response, () -> this.zookeeperNegotiator.getChildrenFor(serviceName).stream().map(this::toJson).collect(Collectors.toList()));
-	//	}
-
 	@GET
 	@Path("{serviceName}")
 	public void discover(@Suspended AsyncResponse response, @PathParam("serviceName") String serviceName)

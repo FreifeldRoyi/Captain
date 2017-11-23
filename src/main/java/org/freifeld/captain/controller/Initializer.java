@@ -91,7 +91,7 @@ public class Initializer
 		{
 			this.thisInstance = ServiceInstance.<InstanceData>builder()
 					.name(this.discoveryServiceName)
-					.payload(new InstanceData(this.discoveryServiceName, false))
+					.payload(new InstanceData(false))
 					.build();
 
 			this.serviceDiscovery = ServiceDiscoveryBuilder.builder(InstanceData.class)

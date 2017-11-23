@@ -1,33 +1,34 @@
 package org.freifeld.captain.entity;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.time.Instant;
 
 /**
  * @author royif
  * @since 16/10/17.
  */
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.FIELD)
 public class InstanceData
 {
-	private String serviceName;
 	private long heartbeat;
 	private boolean timedConnection;
 
+	public InstanceData()
+	{
+	}
+
 	public InstanceData(InstanceData other)
 	{
-		this(other.serviceName, other.timedConnection);
+		this(other.timedConnection);
 	}
 
-	public InstanceData(String serviceName, boolean timedConnection)
+	public InstanceData(boolean timedConnection)
 	{
-
-		this.serviceName = serviceName;
 		this.timedConnection = timedConnection;
 		this.heartbeat = Instant.now().toEpochMilli();
-	}
-
-	public String getServiceName()
-	{
-		return serviceName;
 	}
 
 	public long getHeartbeat()

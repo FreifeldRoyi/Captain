@@ -42,7 +42,7 @@ public class ZookeeperNegotiator
 		{
 			ServiceInstance<InstanceData> instance = ServiceInstance.<InstanceData>builder()
 					.name(serviceName)
-					.payload(new InstanceData(serviceName, timed))
+					.payload(new InstanceData(timed))
 					.build();
 			this.serviceDiscovery.registerService(instance);
 			toReturn = instance;
