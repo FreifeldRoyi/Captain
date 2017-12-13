@@ -23,6 +23,7 @@
         <!-- Dependencies -->
         <version.curator>4.0.0</version.curator>
         <version.zookeeper>3.4.10</version.zookeeper>
+        <version.prometheus>0.1.0</version.prometheus>
         <version.logging.slf4j>1.7.25</version.logging.slf4j>
         <version.logging.log4j>2.9.1</version.logging.log4j>
     </properties>
@@ -38,7 +39,16 @@
             <version>${version.javaee-api}</version>
             <scope>provided</scope>
         </dependency>
-
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient</artifactId>
+            <version>${version.prometheus}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_common</artifactId>
+            <version>${version.prometheus}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-framework</artifactId>
