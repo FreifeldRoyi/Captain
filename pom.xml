@@ -25,7 +25,7 @@
         <version.zookeeper>3.5.5</version.zookeeper>
         <version.prometheus>0.1.0</version.prometheus>
         <version.logging.slf4j>1.7.25</version.logging.slf4j>
-        <version.logging.log4j>2.13.3</version.logging.log4j>
+        <version.logging.log4j>2.15.0</version.logging.log4j>
     </properties>
 
     <build>
